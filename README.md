@@ -282,35 +282,6 @@ curl -X DELETE http://localhost:8080/api/destinos/1
 }
 ```
 
-## 🏗️ Arquitetura
-
-A aplicação segue uma arquitetura em camadas:
-
-- **Controller**: Responsável por receber as requisições HTTP e retornar as respostas
-- **Service**: Contém a lógica de negócios da aplicação
-- **Model**: Define a estrutura dos dados
-- **DTO**: Objetos de transferência de dados
-
-### Principais Características:
-
-✅ Separação clara de responsabilidades  
-✅ Código limpo e bem documentado  
-✅ Validação de dados com Bean Validation  
-✅ Tratamento de erros adequado  
-✅ Uso de boas práticas do Spring Boot  
-✅ Armazenamento em memória (sem necessidade de banco de dados)  
-
-## 📝 Observações Importantes
-
-- A aplicação armazena os dados em memória. Ao reiniciar a aplicação, todos os dados serão perdidos.
-- Não há autenticação ou autorização implementada, conforme especificado no requisito.
-- As avaliações são calculadas automaticamente ao adicionar uma nova nota.
-- A nota de avaliação deve estar entre 1 e 10.
-
-## 👨‍💻 Autor
-
-Desenvolvido como parte do desafio de Desenvolvimento de Aplicações Web.
-
 ## 📄 Licença
 
 Este projeto foi desenvolvido para fins educacionais.
