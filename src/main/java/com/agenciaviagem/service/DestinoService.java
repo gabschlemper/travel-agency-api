@@ -1,22 +1,23 @@
 package com.agenciaviagem.service;
 
 import com.agenciaviagem.model.Destino;
+import com.agenciaviagem.repository.DestinoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * Camada de serviço responsável pela lógica de negócios relacionada aos destinos
  */
 @Service
+@Transactional
 public class DestinoService {
     
-    private final List<Destino> destinos = new ArrayList<>();
-    private final AtomicLong contador = new AtomicLong(1);
+    @Autowired
+    private DestinoRepository destinoRepository;
     
     /**
      * Cadastra um novo destino de viagem
@@ -24,8 +25,6 @@ public class DestinoService {
      * @return Destino cadastrado com ID gerado
      */
     public Destino cadastrarDestino(Destino destino) {
-        destino.setId(contador.getAndIncrement());
-        
         // Inicializa valores padrão se não informados
         if (destino.getAvaliacaoMedia() == null) {
             destino.setAvaliacaoMedia(0.0);
@@ -34,16 +33,16 @@ public class DestinoService {
             destino.setTotalAvaliacoes(0);
         }
         
-        destinos.add(destino);
-        return destino;
+        return destinoRepository.save(destino);
     }
     
     /**
      * Lista todos os destinos disponíveis
      * @return Lista de todos os destinos
      */
+    @Transactional(readOnly = true)
     public List<Destino> listarTodos() {
-        return new ArrayList<>(destinos);
+        return destinoRepository.findAll();
     }
     
     /**
@@ -51,16 +50,13 @@ public class DestinoService {
      * @param termo Termo de pesquisa
      * @return Lista de destinos que correspondem ao termo
      */
+    @Transactional(readOnly = true)
     public List<Destino> pesquisarDestinos(String termo) {
         if (termo == null || termo.trim().isEmpty()) {
             return listarTodos();
         }
         
-        String termoBusca = termo.toLowerCase();
-        return destinos.stream()
-                .filter(d -> d.getNome().toLowerCase().contains(termoBusca) || 
-                            d.getLocalizacao().toLowerCase().contains(termoBusca))
-                .collect(Collectors.toList());
+        return destinoRepository.pesquisarPorNomeOuLocalizacao(termo);
     }
     
     /**
@@ -68,10 +64,9 @@ public class DestinoService {
      * @param id ID do destino
      * @return Optional contendo o destino, se encontrado
      */
+    @Transactional(readOnly = true)
     public Optional<Destino> buscarPorId(Long id) {
-        return destinos.stream()
-                .filter(d -> d.getId().equals(id))
-                .findFirst();
+        return destinoRepository.findById(id);
     }
     
     /**
@@ -79,14 +74,14 @@ public class DestinoService {
      * @param id ID do destino
      * @param nota Nota da avaliação (1 a 10)
      * @return Destino com a avaliação atualizada
-     * @throws IllegalArgumentException se a nota for inválida
+     * @throws IllegalArgumentException se a nota for inválida ou destino não for encontrado
      */
     public Destino avaliarDestino(Long id, Integer nota) {
         if (nota == null || nota < 1 || nota > 10) {
             throw new IllegalArgumentException("A nota deve estar entre 1 e 10");
         }
         
-        Destino destino = buscarPorId(id)
+        Destino destino = destinoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Destino não encontrado"));
         
         // Calcula a nova média
@@ -95,7 +90,7 @@ public class DestinoService {
         destino.setTotalAvaliacoes(destino.getTotalAvaliacoes() + 1);
         destino.setAvaliacaoMedia(somaAvaliacoes / destino.getTotalAvaliacoes());
         
-        return destino;
+        return destinoRepository.save(destino);
     }
     
     /**
@@ -103,16 +98,17 @@ public class DestinoService {
      * @param id ID do destino a ser atualizado
      * @param destinoAtualizado Dados atualizados do destino
      * @return Destino atualizado
+     * @throws IllegalArgumentException se o destino não for encontrado
      */
     public Destino atualizarDestino(Long id, Destino destinoAtualizado) {
-        Destino destino = buscarPorId(id)
+        Destino destino = destinoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Destino não encontrado"));
         
         destino.setNome(destinoAtualizado.getNome());
         destino.setLocalizacao(destinoAtualizado.getLocalizacao());
         destino.setDescricao(destinoAtualizado.getDescricao());
         
-        // Mantém as avaliações existentes
+        // Mantém as avaliações existentes se não forem informadas
         if (destinoAtualizado.getAvaliacaoMedia() != null) {
             destino.setAvaliacaoMedia(destinoAtualizado.getAvaliacaoMedia());
         }
@@ -120,7 +116,7 @@ public class DestinoService {
             destino.setTotalAvaliacoes(destinoAtualizado.getTotalAvaliacoes());
         }
         
-        return destino;
+        return destinoRepository.save(destino);
     }
     
     /**
@@ -129,6 +125,10 @@ public class DestinoService {
      * @return true se excluído com sucesso
      */
     public boolean excluirDestino(Long id) {
-        return destinos.removeIf(d -> d.getId().equals(id));
+        if (destinoRepository.existsById(id)) {
+            destinoRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }
